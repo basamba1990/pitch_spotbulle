@@ -1,0 +1,6 @@
+flask
+flask_sqlalchemy
+werkzeug
+python-dotenv
+google-generativeai
+ffmpeg-python

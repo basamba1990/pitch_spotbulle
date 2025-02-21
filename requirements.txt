@@ -5,4 +5,4 @@ python-dotenv
 google-generativeai
 ffmpeg-python
 gunicorn
-openai-whisper
+vosk

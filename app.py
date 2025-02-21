@@ -48,6 +48,4 @@ def feedback_page():
     return render_template("feedback.html")
 
 if __name__ == "__main__":
-    port = int(os.environ.get("PORT", 10000))  # Utilise le port fourni par Render
-    app.run(host="0.0.0.0", port=port)
-
+    app.run(host="0.0.0.0", port=5000, debug=True)

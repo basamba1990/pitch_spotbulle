@@ -34,7 +34,7 @@ def upload_video():
         category = classify_pitch(text)
 
         return jsonify({"transcription": text, "category": category})
-    
+      
     return render_template("upload.html")
 
 @app.route("/feedback", methods=["GET", "POST"])

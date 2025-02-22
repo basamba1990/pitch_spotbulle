@@ -1,38 +1,46 @@
 import os
-import google.generativeai as genai
+import wave
 import ffmpeg
+from vosk import Model, KaldiRecognizer
 from dotenv import load_dotenv
 
+# Charger les variables d'environnement
 load_dotenv()
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-def extract_audio(video_path):
-    """Extrait l'audio d'une vidéo et le sauvegarde en format WAV."""
+VOSK_MODEL_PATH = os.getenv("VOSK_MODEL_PATH")  # Vérifiez que ce chemin est correct
+
+def extract_audio(video_path: str) -> str:
+    """Extrait l'audio d'une vidéo en WAV (16kHz) avec ffmpeg."""
     audio_path = video_path.rsplit(".", 1)[0] + ".wav"
     
     try:
-        ffmpeg.input(video_path).output(audio_path, format="wav", acodec="pcm_s16le").run(overwrite_output=True)
+        ffmpeg.input(video_path).output(audio_path, format="wav", acodec="pcm_s16le", ar="16000").run(overwrite_output=True)
         return audio_path
     except Exception as e:
         print(f"Erreur d'extraction audio : {e}")
         return None
 
 def transcribe_video(video_path: str) -> str:
-    """Extrait l'audio et utilise Gemini AI pour la transcription"""
+    """Utilise Vosk pour la transcription audio."""
     audio_path = extract_audio(video_path)
     if not audio_path:
         return "Erreur lors de l'extraction audio"
 
     try:
-        model = genai.GenerativeModel('gemini-pro')
-        prompt = f"Transcrivez le contenu audio du fichier : {audio_path}"
-        response = model.generate_content(prompt)
+        wf = wave.open(audio_path, "rb")
+        model = Model(VOSK_MODEL_PATH)
+        rec = KaldiRecognizer(model, wf.getframerate())
 
-        if response.text:
-            print(f"Réponse API Gemini : {response.text}")
-            return response.text.strip()
-        else:
-            return "Aucune transcription obtenue"
+        transcript = ""
+        while True:
+            data = wf.readframes(4000)
+            if len(data) == 0:
+                break
+            if rec.AcceptWaveform(data):
+                transcript += rec.Result()
+
+        transcript += rec.FinalResult()
+        return transcript.strip() if transcript else "Aucune transcription obtenue"
     except Exception as e:
-        print(f"Erreur lors de la transcription : {e}")
+        print(f"Erreur de transcription : {e}")
         return "Erreur de transcription"

@@ -1,27 +1,42 @@
-import whisper
+import os
 import ffmpeg
+import numpy as np
+from whispercpp import Whisper
 
-def extract_audio(video_path):
-    """Extrait l'audio d'une vidéo et le sauvegarde en format WAV."""
-    audio_path = video_path.rsplit(".", 1)[0] + ".wav"
-    
+# Charger le modèle WhisperCpp
+whisper_model = Whisper.from_pretrained("tiny.en")
+
+def extract_audio(video_path: str) -> str:
+    """Extrait l'audio d'une vidéo avec ffmpeg et retourne le chemin du fichier audio."""
+    audio_path = video_path.rsplit('.', 1)[0] + '.wav'
+    ffmpeg.input(video_path).output(audio_path, format="wav", acodec="pcm_s16le", ac=1, ar=16000).run()
+    return audio_path
+
+def transcribe_audio_whisper(audio_path: str) -> str:
+    """Utilise WhisperCpp pour transcrire l'audio."""
     try:
-        ffmpeg.input(video_path).output(audio_path, format="wav", acodec="pcm_s16le", ar="16000").run(overwrite_output=True)
-        return audio_path
-    except Exception as e:
-        print(f"Erreur d'extraction audio : {e}")
-        return None
+        # Charger l'audio
+        y, _ = (
+            ffmpeg.input(audio_path, threads=0)
+            .output("-", format="s16le", acodec="pcm_s16le", ac=1, ar=16000)
+            .run(cmd=["ffmpeg", "-nostdin"], capture_stdout=True, capture_stderr=True)
+        )
+        
+        # Convertir en tableau NumPy normalisé
+        audio_array = np.frombuffer(y, np.int16).astype(np.float32) / 32768.0
 
-def transcribe_video(video_path):
-    """Extrait l'audio et utilise Whisper pour la transcription"""
+        # Transcription avec WhisperCpp
+        transcription = whisper_model.transcribe(audio_array)
+        return transcription.strip()
+    
+    except Exception as e:
+        print(f"Erreur de transcription WhisperCpp : {e}")
+        return "Erreur de transcription"
+
+def transcribe_video(video_path: str) -> str:
+    """Extrait l'audio et transcrit la vidéo avec WhisperCpp."""
     audio_path = extract_audio(video_path)
-    if not audio_path:
+    if not os.path.exists(audio_path):
         return "Erreur lors de l'extraction audio"
 
-    try:
-        model = whisper.load_model("base")  # Choisir un modèle (tiny, base, small, medium, large)
-        result = model.transcribe(audio_path, language="fr")
-        return result["text"] if result["text"] else "Aucune transcription obtenue"
-    except Exception as e:
-        print(f"Erreur lors de la transcription : {e}")
-        return "Erreur de transcription"
+    return transcribe_audio_whisper(audio_path)

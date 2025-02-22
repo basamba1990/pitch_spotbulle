@@ -5,7 +5,6 @@ python-dotenv
 google-generativeai
 ffmpeg-python
 gunicorn
-whispercpp
+openai-whisper
 numpy
-tqdm
 torch

@@ -1,17 +1,21 @@
 import os
 from flask import Flask, render_template, request, jsonify, redirect, url_for
 from werkzeug.utils import secure_filename
+from dotenv import load_dotenv
 from models.transcriber import transcribe_video
 from models.classifier import classify_pitch
-from dotenv import load_dotenv
 
 # Charger les variables d'environnement
 load_dotenv()
 
+# Initialiser Flask
 app = Flask(__name__)
-app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
-app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER")
 
+# Charger les configurations
+app.config["SECRET_KEY"] = os.getenv("SECRET_KEY", "default_secret_key")  # Clé par défaut si non définie
+app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")  # Utilisation d'un dossier par défaut
+
+# Vérifier que le dossier d'upload existe
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 @app.route("/")
@@ -25,13 +29,19 @@ def upload_video():
             return jsonify({"error": "Aucun fichier reçu"}), 400
 
         file = request.files["file"]
+        if file.filename == "":
+            return jsonify({"error": "Aucun fichier sélectionné"}), 400
+
         filename = secure_filename(file.filename)
         filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
         file.save(filepath)
 
-        # Transcrire et classifier
-        text = transcribe_video(filepath)
-        category = classify_pitch(text)
+        try:
+            # Transcription et classification
+            text = transcribe_video(filepath)
+            category = classify_pitch(text)
+        except Exception as e:
+            return jsonify({"error": f"Erreur lors du traitement : {str(e)}"}), 500
 
         return jsonify({"transcription": text, "category": category})
       
@@ -42,10 +52,12 @@ def feedback_page():
     if request.method == "POST":
         user_feedback = request.form.get("feedback")
         category = request.form.get("category")
+
         print(f"Feedback reçu : {user_feedback} pour la catégorie {category}")
         return redirect(url_for("index"))
 
     return render_template("feedback.html")
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
+    port = int(os.environ.get("PORT", 5000))  # Utilisation du port de Render ou 5000 par défaut
+    app.run(host="0.0.0.0", port=port)

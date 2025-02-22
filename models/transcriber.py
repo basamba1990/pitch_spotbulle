@@ -1,42 +1,38 @@
 import os
-import wave
+import google.generativeai as genai
 import ffmpeg
-from vosk import Model, KaldiRecognizer
 from dotenv import load_dotenv
 
-# Charger les variables d'environnement
 load_dotenv()
+genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
 
-VOSK_MODEL_PATH = os.getenv("VOSK_MODEL_PATH")  # Chemin du modèle Vosk
-
-def extract_audio(video_path: str) -> str:
-    """Extrait l'audio d'une vidéo avec ffmpeg."""
-    audio_path = video_path.rsplit('.', 1)[0] + '.wav'
-    ffmpeg.input(video_path).output(audio_path, format='wav', acodec='pcm_s16le', ar='16000').run(overwrite_output=True)
-    return audio_path
+def extract_audio(video_path):
+    """Extrait l'audio d'une vidéo et le sauvegarde en format WAV."""
+    audio_path = video_path.rsplit(".", 1)[0] + ".wav"
+    
+    try:
+        ffmpeg.input(video_path).output(audio_path, format="wav", acodec="pcm_s16le").run(overwrite_output=True)
+        return audio_path
+    except Exception as e:
+        print(f"Erreur d'extraction audio : {e}")
+        return None
 
 def transcribe_video(video_path: str) -> str:
-    """Utilise Vosk pour la transcription audio."""
+    """Extrait l'audio et utilise Gemini AI pour la transcription"""
     audio_path = extract_audio(video_path)
-    if not os.path.exists(audio_path):
+    if not audio_path:
         return "Erreur lors de l'extraction audio"
 
     try:
-        wf = wave.open(audio_path, "rb")
-        model = Model(VOSK_MODEL_PATH)
-        rec = KaldiRecognizer(model, wf.getframerate())
+        model = genai.GenerativeModel('gemini-pro')
+        prompt = f"Transcrivez le contenu audio du fichier : {audio_path}"
+        response = model.generate_content(prompt)
 
-        transcript = ""
-        while True:
-            data = wf.readframes(4000)
-            if len(data) == 0:
-                break
-            if rec.AcceptWaveform(data):
-                transcript += rec.Result()
-
-        transcript += rec.FinalResult()
-        return transcript.strip() if transcript else "Aucune transcription obtenue"
-
+        if response.text:
+            print(f"Réponse API Gemini : {response.text}")
+            return response.text.strip()
+        else:
+            return "Aucune transcription obtenue"
     except Exception as e:
-        print(f"Erreur de transcription : {e}")
+        print(f"Erreur lors de la transcription : {e}")
         return "Erreur de transcription"

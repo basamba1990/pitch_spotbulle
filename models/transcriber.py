@@ -7,7 +7,6 @@ from dotenv import load_dotenv
 # Charger les variables d'environnement
 load_dotenv()
 
-# Vérifier si un GPU est disponible
 device = "cuda" if torch.cuda.is_available() else "cpu"
 
 def load_model(model_name="tiny"):
@@ -19,19 +18,16 @@ def load_model(model_name="tiny"):
         print(f"Erreur lors du chargement du modèle Whisper : {e}")
         return None
 
-# Charger le modèle au démarrage
 whisper_model = load_model("tiny")
 
 def extract_audio(video_path: str) -> str:
-    """Extrait l'audio d'une vidéo avec ffmpeg et retourne le chemin du fichier audio."""
+    """Extrait l'audio d'une vidéo avec ffmpeg."""
     audio_path = video_path.rsplit('.', 1)[0] + '.wav'
     try:
-        (
-            ffmpeg
-            .input(video_path)
-            .output(audio_path, format="wav", acodec="pcm_s16le", ac=1, ar=16000)
-            .run(overwrite_output=True, capture_stdout=True, capture_stderr=True)
-        )
+        (ffmpeg
+         .input(video_path)
+         .output(audio_path, format="wav", acodec="pcm_s16le", ac=1, ar=16000)
+         .run(overwrite_output=True, capture_stdout=True, capture_stderr=True))
         if os.path.exists(audio_path):
             return audio_path
         else:
@@ -42,7 +38,7 @@ def extract_audio(video_path: str) -> str:
         return None
 
 def transcribe_audio_whisper(audio_path: str) -> str:
-    """Utilise Whisper pour transcrire un fichier audio."""
+    """Transcrit un fichier audio avec Whisper."""
     if whisper_model is None:
         return "Modèle Whisper non chargé"
 
@@ -54,15 +50,9 @@ def transcribe_audio_whisper(audio_path: str) -> str:
         return "Erreur de transcription"
 
 def transcribe_video(video_path: str) -> str:
-    """Extrait l'audio d'une vidéo et transcrit son contenu avec Whisper."""
+    """Extrait et transcrit l'audio d'une vidéo."""
     audio_path = extract_audio(video_path)
     if not audio_path:
         return "Erreur lors de l'extraction audio"
 
     return transcribe_audio_whisper(audio_path)
-
-# Test avec une vidéo (à remplacer par ton fichier)
-if __name__ == "__main__":
-    video_file = "example.mp4"  # Remplace par le chemin de ta vidéo
-    transcription = transcribe_video(video_file)
-    print("\n📜 Transcription :\n", transcription)

@@ -4,9 +4,10 @@ import ffmpeg
 from vosk import Model, KaldiRecognizer
 from dotenv import load_dotenv
 
+# Charger les variables d'environnement
 load_dotenv()
 
-VOSK_MODEL_PATH = os.getenv("VOSK_MODEL_PATH")
+VOSK_MODEL_PATH = os.getenv("VOSK_MODEL_PATH")  # Chemin du modèle Vosk
 
 def extract_audio(video_path: str) -> str:
     """Extrait l'audio d'une vidéo avec ffmpeg."""

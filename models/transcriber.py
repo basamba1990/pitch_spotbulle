@@ -19,7 +19,7 @@ def transcribe_video(video_path):
         return "Erreur lors de l'extraction audio"
 
     try:
-        model = whisper.load_model("medium")  # Choisir un modèle (tiny, base, small, medium, large)
+        model = whisper.load_model("base")  # Choisir un modèle (tiny, base, small, medium, large)
         result = model.transcribe(audio_path, language="fr")
         return result["text"] if result["text"] else "Aucune transcription obtenue"
     except Exception as e:

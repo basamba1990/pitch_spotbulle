@@ -8,3 +8,6 @@ gunicorn
 openai-whisper
 numpy
 torch
+flask-cors 
+google-cloud-speech
+google-cloud-storage

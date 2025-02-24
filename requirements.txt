@@ -5,9 +5,9 @@ python-dotenv
 google-generativeai
 ffmpeg-python
 gunicorn
-openai-whisper
 numpy
 torch
 flask-cors 
+librosa
 google-cloud-speech
 google-cloud-storage

@@ -1,0 +1,3 @@
+# .gitignore
+.env
+config/speech-to-text-452320-99b02bd396ce.json

@@ -6,7 +6,7 @@ from google.cloud import speech_v1p1beta1 as speech
 load_dotenv()
 
 # Utiliser la variable GOOGLE_APPLICATION_CREDENTIALS pour définir la clé de service
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_PRIVATE_KEY")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
 
 def transcribe_video(video_path: str) -> str:
     """
@@ -23,26 +23,4 @@ def transcribe_video(video_path: str) -> str:
         Transcription textuelle de l'audio.
     """
     # Configuration du client Google Speech-to-Text
-    client = speech.SpeechClient()
-
-    # Charger l'audio
-    with open(video_path, "rb") as audio_file:
-        content = audio_file.read()
-
-    # Configuration de la requête
-    audio = speech.RecognitionAudio(content=content)
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=16000,
-        language_code="fr-FR",  # Langue française
-    )
-
-    # Envoyer la requête
-    response = client.recognize(config=config, audio=audio)
-
-    # Récupérer la transcription
-    transcription = ""
-    for result in response.results:
-        transcription += result.alternatives[0].transcript + " "
-
-    return transcription.strip()
+    client = speech

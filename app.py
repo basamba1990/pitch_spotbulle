@@ -28,7 +28,7 @@ def upload_video():
         return redirect(url_for("upload_video"))
 
     file = request.files["file"]
-    
+      
     if file.filename == "":
         flash("Aucun fichier sélectionné", "error")
         return redirect(url_for("upload_video"))
@@ -39,7 +39,7 @@ def upload_video():
 
     try:
         text = transcribe_video(filepath)
-        category = classify_pitch(text)
+        category = classify_pitch(filepath)
         return jsonify({"transcription": text, "category": category})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

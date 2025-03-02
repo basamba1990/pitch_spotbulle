@@ -9,6 +9,7 @@ class Config:
     UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER")  # Dossier pour les fichiers téléchargés
     # Ajouter d'autres variables nécessaires
     API_KEY_TRANSCRIPTION = os.getenv("API_KEY_TRANSCRIPTION")
+    GOOGLE_APPLICATION_CREDENTIALS = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")  # Ajouté pour la clé Google Cloud
 
 
 # Charger la configuration

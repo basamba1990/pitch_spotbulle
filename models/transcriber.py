@@ -6,7 +6,7 @@ from google.cloud import speech_v1p1beta1 as speech
 load_dotenv()
 
 # Utiliser la variable GOOGLE_APPLICATION_CREDENTIALS pour définir la clé de service
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_PRIVATE_KEY")
 
 def transcribe_video(video_path: str) -> str:
     """

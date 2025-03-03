@@ -5,8 +5,8 @@ from google.cloud import speech_v1p1beta1 as speech
 # Charger les variables d'environnement depuis le fichier .env
 load_dotenv()
 
-# Utiliser la variable GOOGLE_APPLICATION_CREDENTIALS pour définir la clé de service
-os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = os.getenv("GOOGLE_APPLICATION_CREDENTIALS")
+# Définir manuellement la variable GOOGLE_APPLICATION_CREDENTIALS
+os.environ["GOOGLE_APPLICATION_CREDENTIALS"] = "/home/userland/config/speech-to-text-452320-99b02bd396ce.json"
 
 def transcribe_video(video_path: str) -> str:
     """
@@ -46,3 +46,9 @@ def transcribe_video(video_path: str) -> str:
         transcription += result.alternatives[0].transcript + " "
 
     return transcription.strip()
+
+# Exemple d'utilisation
+if __name__ == "__main__":
+    video_path = "/sdcard/Download/samples_jfk.wav"  # Chemin de ton fichier audio
+    transcription = transcribe_video(video_path)
+    print(f"📝 Transcription : {transcription}")

@@ -126,7 +126,7 @@ def transcribe_file(file_path: str, bucket_name: str) -> str:
         return None
 
 # Exemple d'utilisation avec un fichier téléchargé
-uploaded_file_path = "chemin/vers/le/fichier/téléchargé.mp4"  # Cela doit être le chemin du fichier téléchargé par l'utilisateur
+uploaded_file_path = "sdcard/Download/samples_jfk.mp3"  # Cela doit être le chemin du fichier téléchargé par l'utilisateur
 bucket_name = "mon-bucket-gcs-spotbulle-2050"
 transcription = transcribe_user_uploaded_file(uploaded_file_path, bucket_name)
 print(f"📝 Transcription : {transcription}")

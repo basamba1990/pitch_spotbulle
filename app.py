@@ -52,7 +52,7 @@ def upload_video():
 
     try:
         # Transcription de la vidéo avec la fonction mise à jour
-        text = transcribe_user_uploaded_file(filepath, bucket_name="my_bucket")  # Assurez-vous que le nom du bucket est correct
+        text = transcriber_file(filepath, bucket_name="my_bucket")  # Assurez-vous que le nom du bucket est correct
         # Classification du pitch
         category = classify_pitch(filepath)
         return jsonify({"transcription": text, "category": category})

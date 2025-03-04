@@ -109,8 +109,27 @@ def transcribe_video(video_path: str, bucket_name: str) -> str:
     transcription = transcribe_audio_from_gcs(gcs_uri)
     return transcription
 
+def transcribe_file(file_path: str, bucket_name: str) -> str:
+    """
+    Transcrit un fichier vidéo ou audio.
+    """
+    file_extension = file_path.split('.')[-1].lower()
+    
+    if file_extension in ['mp4', 'avi', 'mov']:
+        print("🖥️ Fichier vidéo détecté, extraction de l'audio...")
+        return transcribe_video(file_path, bucket_name)
+    elif file_extension in ['mp3', 'wav', 'flac']:
+        print("🎧 Fichier audio détecté, transcription...")
+        return transcribe_audio_from_gcs(file_path)
+    else:
+        print("❌ Format de fichier non supporté.")
+        return None
+
 # Exemple d'utilisation
-video_path = "chemin/vers/votre/video.mp4"
+file_path = input("Entrez le chemin de votre fichier (audio/vidéo) : ")
 bucket_name = "mon-bucket-gcs-spotbulle-2050"
-transcription = transcribe_video(video_path, bucket_name)
-print(f"📝 Transcription : {transcription}")
+transcription = transcribe_file(file_path, bucket_name)
+if transcription:
+    print(f"📝 Transcription : {transcription}")
+else:
+    print("❌ Échec de la transcription.")

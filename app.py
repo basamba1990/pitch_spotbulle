@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from models.transcriber import transcribe_video
+from models.transcriber import transcribe_user_uploaded_file  # Assurez-vous d'importer correctement la fonction
 from models.classifier import classify_pitch
 from dotenv import load_dotenv
 
@@ -17,24 +17,26 @@ ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
 
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
+# Fonction pour vérifier les extensions de fichiers autorisées
 def allowed_file(filename):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
+# Route principale - Page d'accueil
 @app.route("/")
 def index():
     return render_template("index.html")
 
+# Route pour l'upload de vidéos
 @app.route("/upload", methods=["GET", "POST"])
 def upload_video():
     if request.method == "GET":
         return render_template("upload.html")
-
+    
     if "file" not in request.files:
         flash("Aucun fichier reçu", "error")
         return redirect(url_for("upload_video"))
 
     file = request.files["file"]
-    
     if file.filename == "":
         flash("Aucun fichier sélectionné", "error")
         return redirect(url_for("upload_video"))
@@ -49,14 +51,15 @@ def upload_video():
     file.save(filepath)
 
     try:
-        # Transcription de la vidéo
-        text = transcribe_video(filepath)
+        # Transcription de la vidéo avec la fonction mise à jour
+        text = transcribe_user_uploaded_file(filepath, bucket_name="my_bucket")  # Assurez-vous que le nom du bucket est correct
         # Classification du pitch
         category = classify_pitch(filepath)
         return jsonify({"transcription": text, "category": category})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+# Route pour le retour d'information (feedback)
 @app.route("/feedback", methods=["POST"])
 def feedback_page():
     user_feedback = request.form.get("feedback")

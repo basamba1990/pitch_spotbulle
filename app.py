@@ -12,7 +12,13 @@ app = Flask(__name__)
 app.config["SECRET_KEY"] = os.getenv("SECRET_KEY")
 app.config["UPLOAD_FOLDER"] = os.getenv("UPLOAD_FOLDER", "uploads")
 
+# Formats de fichiers autorisés
+ALLOWED_EXTENSIONS = {'mp4', 'avi', 'mov', 'mkv'}
+
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @app.route("/")
 def index():
@@ -28,9 +34,14 @@ def upload_video():
         return redirect(url_for("upload_video"))
 
     file = request.files["file"]
-      
+    
     if file.filename == "":
         flash("Aucun fichier sélectionné", "error")
+        return redirect(url_for("upload_video"))
+
+    # Vérifier si le fichier a une extension autorisée
+    if not allowed_file(file.filename):
+        flash("Format de fichier non autorisé", "error")
         return redirect(url_for("upload_video"))
 
     filename = secure_filename(file.filename)
@@ -38,7 +49,9 @@ def upload_video():
     file.save(filepath)
 
     try:
+        # Transcription de la vidéo
         text = transcribe_video(filepath)
+        # Classification du pitch
         category = classify_pitch(filepath)
         return jsonify({"transcription": text, "category": category})
     except Exception as e:

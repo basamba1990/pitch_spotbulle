@@ -1,5 +1,7 @@
 from dotenv import load_dotenv
 import os
+import subprocess
+from google.cloud import storage
 from google.cloud import speech_v1p1beta1 as speech
 
 # Charger les variables d'environnement
@@ -50,19 +52,29 @@ uJ5ogNfpKQHcUxCitje3nAae
 # Créer un client Google Speech-to-Text
 client = speech.SpeechClient.from_service_account_info(service_account_info)
 
+def extract_audio_from_video(video_path: str, audio_path: str) -> None:
+    """
+    Utilise ffmpeg pour extraire l'audio d'une vidéo et sauvegarder le fichier audio extrait.
+    """
+    command = ['ffmpeg', '-i', video_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', audio_path]
+    subprocess.run(command, check=True)
+    print(f"✅ Audio extrait de {video_path} et sauvegardé sous {audio_path}")
+
+def upload_to_gcs(filepath: str, bucket_name: str) -> str:
+    """
+    Téléverse le fichier audio sur Google Cloud Storage et retourne l'URI GCS.
+    """
+    storage_client = storage.Client.from_service_account_info(service_account_info)
+    bucket = storage_client.bucket(bucket_name)
+    blob = bucket.blob(os.path.basename(filepath))
+    blob.upload_from_filename(filepath)
+    gcs_uri = f"gs://{bucket_name}/{os.path.basename(filepath)}"
+    print(f"📤 Fichier téléchargé vers {gcs_uri}")
+    return gcs_uri
+
 def transcribe_audio_from_gcs(gcs_uri: str) -> str:
     """
     Transcrit l'audio stocké sur Google Cloud Storage avec Google Speech-to-Text.
-    
-    Parameters
-    ----------
-    gcs_uri : str
-        URI vers le fichier audio dans le bucket GCS (ex : gs://bucket-name/path/to/audio-file).
-        
-    Returns
-    -------
-    str
-        Transcription textuelle de l'audio.
     """
     print(f"🔗 URI GCS reçu : {gcs_uri}")
     
@@ -82,9 +94,23 @@ def transcribe_audio_from_gcs(gcs_uri: str) -> str:
     transcription = " ".join([result.alternatives[0].transcript for result in response.results])
     return transcription.strip()
 
-# Exemple d'utilisation
-if __name__ == "__main__":
-    # Remplace ce lien par ton URI GCS
-    gcs_uri = "gs://mon-bucket-gcs-spotbulle-2050/samples_jfk.mp3"
+def transcribe_video(video_path: str, bucket_name: str) -> str:
+    """
+    Transcrit l'audio d'une vidéo. Extrait d'abord l'audio, puis le téléverse sur GCS et le transcrit.
+    """
+    # Extraire l'audio de la vidéo
+    audio_path = video_path.replace(".mp4", ".wav")
+    extract_audio_from_video(video_path, audio_path)
+    
+    # Téléverser l'audio vers Google Cloud Storage
+    gcs_uri = upload_to_gcs(audio_path, bucket_name)
+    
+    # Transcrire l'audio depuis GCS
     transcription = transcribe_audio_from_gcs(gcs_uri)
-    print(f"📝 Transcription : {transcription}")
+    return transcription
+
+# Exemple d'utilisation
+video_path = "chemin/vers/votre/video.mp4"
+bucket_name = "mon-bucket-gcs-spotbulle-2050"
+transcription = transcribe_video(video_path, bucket_name)
+print(f"📝 Transcription : {transcription}")

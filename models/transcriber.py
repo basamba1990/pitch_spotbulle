@@ -125,11 +125,8 @@ def transcribe_file(file_path: str, bucket_name: str) -> str:
         print("❌ Format de fichier non supporté.")
         return None
 
-# Exemple d'utilisation
-file_path = input("Entrez le chemin de votre fichier (audio/vidéo) : ")
+# Exemple d'utilisation avec un fichier téléchargé
+uploaded_file_path = "chemin/vers/le/fichier/téléchargé.mp4"  # Cela doit être le chemin du fichier téléchargé par l'utilisateur
 bucket_name = "mon-bucket-gcs-spotbulle-2050"
-transcription = transcribe_file(file_path, bucket_name)
-if transcription:
-    print(f"📝 Transcription : {transcription}")
-else:
-    print("❌ Échec de la transcription.")
+transcription = transcribe_user_uploaded_file(uploaded_file_path, bucket_name)
+print(f"📝 Transcription : {transcription}")

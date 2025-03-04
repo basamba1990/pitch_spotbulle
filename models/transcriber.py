@@ -1,6 +1,5 @@
 from dotenv import load_dotenv
 import os
-import json
 from google.cloud import speech_v1p1beta1 as speech
 
 # Charger les variables d'environnement
@@ -8,10 +7,10 @@ load_dotenv()
 
 # Clé API extraite directement
 service_account_info = {
-  "type": "service_account",
-  "project_id": "speech-to-text-452320",
-  "private_key_id": "99b02bd396ce1984fdf7d86c8889c9821e8b9e43",
-  "private_key": """-----BEGIN PRIVATE KEY-----
+    "type": "service_account",
+    "project_id": "speech-to-text-452320",
+    "private_key_id": "99b02bd396ce1984fdf7d86c8889c9821e8b9e43",
+    "private_key": """-----BEGIN PRIVATE KEY-----
 MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQDG1nnHAauUWLbg
 mXQR52JZ36OdJXdPO0RSrVbMfyBbC0tbF34Bq02DV2VzLsikHdXPSHdGe5JuTs+2
 sFobEfaQz+W7aNOLKU7rC7AChCmv1JlIQ342xyQ78ru2G/qFp/PcMCW1/O245MDe
@@ -39,58 +38,53 @@ qEYmNbFZfbDg3ksGzOl8EmpIdZAAD/GB5MZ1sZGdR/yy5KjYB0Q+qH4YcPQZhQNt
 ZIDYI6mADlcfVd4/7A2JzDECPCVEHU2iKAze730kn0Dg6Uky681SywoERR7W5zNh
 uJ5ogNfpKQHcUxCitje3nAae
 -----END PRIVATE KEY-----""",
-  "client_email": "speech-to-text-service@speech-to-text-452320.iam.gserviceaccount.com",
-  "client_id": "118279315305838707937",
-  "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-  "token_uri": "https://oauth2.googleapis.com/token",
-  "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
-  "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/speech-to-text-service%40speech-to-text-452320.iam.gserviceaccount.com",
-  "universe_domain": "googleapis.com"
+    "client_email": "speech-to-text-service@speech-to-text-452320.iam.gserviceaccount.com",
+    "client_id": "118279315305838707937",
+    "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+    "token_uri": "https://oauth2.googleapis.com/token",
+    "auth_provider_x509_cert_url": "https://www.googleapis.com/oauth2/v1/certs",
+    "client_x509_cert_url": "https://www.googleapis.com/robot/v1/metadata/x509/speech-to-text-service%40speech-to-text-452320.iam.gserviceaccount.com",
+    "universe_domain": "googleapis.com"
 }
 
-# Créer un client Speech-to-Text
+# Créer un client Google Speech-to-Text
 client = speech.SpeechClient.from_service_account_info(service_account_info)
 
-def transcribe_video(video_path: str) -> str:
+def transcribe_audio_from_gcs(gcs_uri: str) -> str:
     """
-    Transcrit l'audio d'une vidéo en texte en utilisant Google Speech-to-Text.
-    Compatible avec les fichiers de plus de 1 minute via long_running_recognize.
-
+    Transcrit l'audio stocké sur Google Cloud Storage avec Google Speech-to-Text.
+    
     Parameters
     ----------
-    video_path : str
-        Chemin vers le fichier audio.
-
+    gcs_uri : str
+        URI vers le fichier audio dans le bucket GCS (ex : gs://bucket-name/path/to/audio-file).
+        
     Returns
     -------
     str
         Transcription textuelle de l'audio.
     """
-    # Charger l'audio
-    with open(video_path, "rb") as audio_file:
-        content = audio_file.read()
-
-    # Configuration de la requête
-    audio = speech.RecognitionAudio(content=content)
+    print(f"🔗 URI GCS reçu : {gcs_uri}")
+    
+    # Configurer la requête pour Google Speech-to-Text
+    audio = speech.RecognitionAudio(uri=gcs_uri)
     config = speech.RecognitionConfig(
         encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
         sample_rate_hertz=16000,
         language_code="fr-FR",
     )
-
-    # Utiliser long_running_recognize() pour les fichiers longs
+    
+    print("🔄 Transcription en cours... Cela peut prendre quelques minutes.")
     operation = client.long_running_recognize(config=config, audio=audio)
-
-    print("🔄 Traitement en cours... Cela peut prendre quelques minutes.")
-    response = operation.result(timeout=600)  # Timeout après 10 min
-
-    # Récupérer la transcription
+    response = operation.result(timeout=600)  # Timeout après 10 minutes
+    
+    # Récupérer et retourner la transcription
     transcription = " ".join([result.alternatives[0].transcript for result in response.results])
-
     return transcription.strip()
 
 # Exemple d'utilisation
 if __name__ == "__main__":
-    video_path = "/sdcard/Download/samples_jfk.wav"  # Ton fichier audio
-    transcription = transcribe_video(video_path)
+    # Remplace ce lien par ton URI GCS
+    gcs_uri = "gs://mon-bucket-gcs-spotbulle-2050/samples_jfk.mp3"
+    transcription = transcribe_audio_from_gcs(gcs_uri)
     print(f"📝 Transcription : {transcription}")

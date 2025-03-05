@@ -3,12 +3,29 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pitch Classifier</title>
+    <title>Spot Bulle - GENUP2050</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Bienvenue sur Pitch Classifier</h1>
-    <p>Analysez et classez vos pitchs automatiquement.</p>
-    <a href="{{ url_for('upload_video') }}">Uploader une vidéo</a>
+    <h1>Bienvenue sur Spot Bulle</h1>
+    
+    <p>
+        <strong>GENUP2050</strong> est une entreprise à impact qui détecte, connecte et accélère les talents 
+        en les intégrant aux écosystèmes économiques régionaux.
+    </p>
+
+    <p>
+        Grâce à <strong>Spot Bulle</strong>, un outil d'identification et de mise en relation des talents, 
+        et <strong>Vision Dôme</strong>, un accélérateur de projets, GENUP2050 transforme l'énergie des jeunes 
+        en compétences concrètes et en opportunités professionnelles.
+    </p>
+
+    <p>
+        <strong>Notre promesse :</strong> révéler le potentiel des talents et structurer des dynamiques territoriales 
+        durables, en Afrique, en Europe et au-delà.
+    </p>
+
+    <h2>📌 Uploadez votre vidéo et analysez votre pitch</h2>
+    <a href="{{ url_for('upload_video') }}" class="btn">Uploader une vidéo</a>
 </body>
 </html>

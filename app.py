@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from models.transcriber import transcribe_file  # Assurez-vous d'importer correctement la fonction
+from models.transcriber import transcribe_media  # Assurez-vous d'importer correctement la fonction
 from models.classifier import classify_pitch
 from dotenv import load_dotenv
 

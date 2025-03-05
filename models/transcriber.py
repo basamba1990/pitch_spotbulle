@@ -104,7 +104,7 @@ def transcribe_media(file_path: str) -> str:
 
 # Utilisation
 if __name__ == "__main__":
-    fichier = "/chemin/vers/votre/fichier.mp4"  # Peut être audio ou vidéo
+    fichier = "gs://mon-bucket-gcs-spotbulle-2050/samples_jfk.mp3"  # Peut être audio ou vidéo
     transcription = transcribe_media(fichier)
     print("Résultat de la transcription :\n")
     print(transcription)

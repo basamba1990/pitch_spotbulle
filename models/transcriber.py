@@ -8,7 +8,7 @@ from google.cloud import speech_v1p1beta1 as speech
 load_dotenv()  
 
 # Récupérer les clés API  
-DROPBOX_ACCESS_TOKEN = os.getenv("sl.u.AFlyXiQ1KpzkWCVa-U83yhGbrOIyV-Cg4Qn")
+DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")
 GOOGLE_CREDENTIALS_JSON = os.getenv("GOOGLE_APPLICATION_CREDENTIALS_JSON")
 
 # Vérification des variables d'environnement  

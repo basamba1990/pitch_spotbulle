@@ -1,13 +1,17 @@
 from dotenv import load_dotenv
 import os
 import subprocess
-from google.cloud import storage
+import dropbox
 from google.cloud import speech_v1p1beta1 as speech
 
 # Charger les variables d'environnement
 load_dotenv()
 
-# Clé API extraite directement
+# Configuration Dropbox
+DROPBOX_ACCESS_TOKEN = os.getenv("DROPBOX_ACCESS_TOKEN")
+dbx = dropbox.Dropbox(DROPBOX_ACCESS_TOKEN)
+
+# Configuration Google Speech-to-Text
 service_account_info = {
     "type": "service_account",
     "project_id": "speech-to-text-452320",
@@ -49,84 +53,58 @@ uJ5ogNfpKQHcUxCitje3nAae
     "universe_domain": "googleapis.com"
 }
 
-# Créer un client Google Speech-to-Text
 client = speech.SpeechClient.from_service_account_info(service_account_info)
 
-def extract_audio_from_video(video_path: str, audio_path: str) -> None:
-    """
-    Utilise ffmpeg pour extraire l'audio d'une vidéo et sauvegarder le fichier audio extrait.
-    """
-    command = ['ffmpeg', '-i', video_path, '-vn', '-acodec', 'pcm_s16le', '-ar', '16000', '-ac', '1', audio_path]
-    subprocess.run(command, check=True)
-    print(f"✅ Audio extrait de {video_path} et sauvegardé sous {audio_path}")
-
-def upload_to_gcs(filepath: str, bucket_name: str) -> str:
-    """
-    Téléverse le fichier audio sur Google Cloud Storage et retourne l'URI GCS.
-    """
-    storage_client = storage.Client.from_service_account_info(service_account_info)
-    bucket = storage_client.bucket(bucket_name)
-    blob = bucket.blob(os.path.basename(filepath))
-    blob.upload_from_filename(filepath)
-    gcs_uri = f"gs://{bucket_name}/{os.path.basename(filepath)}"
-    print(f"📤 Fichier téléchargé vers {gcs_uri}")
-    return gcs_uri
-
-def transcribe_audio_from_gcs(gcs_uri: str) -> str:
-    """
-    Transcrit l'audio stocké sur Google Cloud Storage avec Google Speech-to-Text.
-    """
-    print(f"🔗 URI GCS reçu : {gcs_uri}")
+def upload_to_dropbox(local_path: str, dropbox_path: str) -> str:
+    """Téléverse un fichier sur Dropbox et retourne le lien direct"""
+    with open(local_path, "rb") as f:
+        dbx.files_upload(f.read(), dropbox_path, mode=dropbox.files.WriteMode("overwrite"))
     
-    # Configurer la requête pour Google Speech-to-Text
-    audio = speech.RecognitionAudio(uri=gcs_uri)
+    shared_link = dbx.sharing_create_shared_link_with_settings(dropbox_path).url
+    return shared_link.replace("?dl=0", "?dl=1")
+
+def extract_audio(source_path: str, output_path: str) -> None:
+    """Extrait l'audio d'un fichier vidéo avec ffmpeg"""
+    cmd = [
+        'ffmpeg', '-i', source_path,
+        '-vn', '-acodec', 'pcm_s16le',
+        '-ar', '16000', '-ac', '1', output_path
+    ]
+    subprocess.run(cmd, check=True)
+    print(f"Audio extrait vers {output_path}")
+
+def transcribe_media(file_path: str) -> str:
+    """Pipeline complet de transcription"""
+    # Extraction audio si nécessaire
+    if file_path.lower().endswith(('.mp4', '.avi', '.mov')):
+        audio_path = os.path.splitext(file_path)[0] + '.wav'
+        extract_audio(file_path, audio_path)
+        file_to_transcribe = audio_path
+    else:
+        file_to_transcribe = file_path
+
+    # Upload vers Dropbox
+    dropbox_path = f"/{os.path.basename(file_to_transcribe)}"
+    direct_link = upload_to_dropbox(file_to_transcribe, dropbox_path)
+    
+    # Configuration de la transcription
+    audio = speech.RecognitionAudio(uri=direct_link)
     config = speech.RecognitionConfig(
         encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
         sample_rate_hertz=16000,
         language_code="fr-FR",
     )
-    
-    print("🔄 Transcription en cours... Cela peut prendre quelques minutes.")
+
+    # Lancement de la transcription
     operation = client.long_running_recognize(config=config, audio=audio)
-    response = operation.result(timeout=600)  # Timeout après 10 minutes
+    print("Début de la transcription...")
+    result = operation.result(timeout=600)
     
-    # Récupérer et retourner la transcription
-    transcription = " ".join([result.alternatives[0].transcript for result in response.results])
-    return transcription.strip()
+    return "\n".join([res.alternatives[0].transcript for res in result.results])
 
-def transcribe_video(video_path: str, bucket_name: str) -> str:
-    """
-    Transcrit l'audio d'une vidéo. Extrait d'abord l'audio, puis le téléverse sur GCS et le transcrit.
-    """
-    # Extraire l'audio de la vidéo
-    audio_path = video_path.replace(".mp4", ".wav")
-    extract_audio_from_video(video_path, audio_path)
-    
-    # Téléverser l'audio vers Google Cloud Storage
-    gcs_uri = upload_to_gcs(audio_path, bucket_name)
-    
-    # Transcrire l'audio depuis GCS
-    transcription = transcribe_audio_from_gcs(gcs_uri)
-    return transcription
-
-def transcribe_file(file_path: str, bucket_name: str) -> str:
-    """
-    Transcrit un fichier vidéo ou audio.
-    """
-    file_extension = file_path.split('.')[-1].lower()
-    
-    if file_extension in ['mp4', 'avi', 'mov']:
-        print("🖥️ Fichier vidéo détecté, extraction de l'audio...")
-        return transcribe_video(file_path, bucket_name)
-    elif file_extension in ['mp3', 'wav', 'flac']:
-        print("🎧 Fichier audio détecté, transcription...")
-        return transcribe_audio_from_gcs(file_path)
-    else:
-        print("❌ Format de fichier non supporté.")
-        return None
-
-# Exemple d'utilisation avec un fichier téléchargé
-uploaded_file_path = "gs://mon-bucket-gcs-spotbulle-2050/samples_jfk.mp3"  # Cela doit être le chemin du fichier téléchargé par l'utilisateur
-bucket_name = "mon-bucket-gcs-spotbulle-2050"
-transcription = transcribe_file(uploaded_file_path, bucket_name)
-print(f"📝 Transcription : {transcription}")
+# Utilisation
+if __name__ == "__main__":
+    fichier = "/chemin/vers/votre/fichier.mp4"  # Peut être audio ou vidéo
+    transcription = transcribe_media(fichier)
+    print("Résultat de la transcription :\n")
+    print(transcription)

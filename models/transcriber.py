@@ -1,3 +1,4 @@
+
 from dotenv import load_dotenv
 import os
 import subprocess
@@ -57,54 +58,64 @@ client = speech.SpeechClient.from_service_account_info(service_account_info)
 
 def upload_to_dropbox(local_path: str, dropbox_path: str) -> str:
     """Téléverse un fichier sur Dropbox et retourne le lien direct"""
-    with open(local_path, "rb") as f:
-        dbx.files_upload(f.read(), dropbox_path, mode=dropbox.files.WriteMode("overwrite"))
-    
-    shared_link = dbx.sharing_create_shared_link_with_settings(dropbox_path).url
-    return shared_link.replace("?dl=0", "?dl=1")
+    try:
+        with open(local_path, "rb") as f:
+            dbx.files_upload(f.read(), dropbox_path, mode=dropbox.files.WriteMode("overwrite"))
+        
+        shared_link = dbx.sharing_create_shared_link_with_settings(dropbox_path).url
+        return shared_link.replace("?dl=0", "?dl=1")
+    except Exception as e:
+        raise RuntimeError(f"Échec de l'upload Dropbox: {str(e)}")
 
 def extract_audio(source_path: str, output_path: str) -> None:
     """Extrait l'audio d'un fichier vidéo avec ffmpeg"""
-    cmd = [
-        'ffmpeg', '-i', source_path,
-        '-vn', '-acodec', 'pcm_s16le',
-        '-ar', '16000', '-ac', '1', output_path
-    ]
-    subprocess.run(cmd, check=True)
-    print(f"Audio extrait vers {output_path}")
+    try:
+        subprocess.run([
+            'ffmpeg', '-i', source_path,
+            '-vn', '-acodec', 'pcm_s16le',
+            '-ar', '16000', '-ac', '1', output_path
+        ], check=True, capture_output=True)
+    except subprocess.CalledProcessError as e:
+        raise RuntimeError(f"Erreur ffmpeg: {e.stderr.decode()}")
 
 def transcribe_media(file_path: str) -> str:
     """Pipeline complet de transcription"""
-    # Extraction audio si nécessaire
-    if file_path.lower().endswith(('.mp4', '.avi', '.mov')):
-        audio_path = os.path.splitext(file_path)[0] + '.wav'
-        extract_audio(file_path, audio_path)
-        file_to_transcribe = audio_path
-    else:
-        file_to_transcribe = file_path
+    try:
+        # Extraction audio
+        if file_path.lower().endswith(('.mp4', '.avi', '.mov')):
+            audio_path = os.path.splitext(file_path)[0] + '.wav'
+            extract_audio(file_path, audio_path)
+            file_to_transcribe = audio_path
+        else:
+            file_to_transcribe = file_path
 
-    # Upload vers Dropbox
-    dropbox_path = f"/{os.path.basename(file_to_transcribe)}"
-    direct_link = upload_to_dropbox(file_to_transcribe, dropbox_path)
+        # Upload vers Dropbox
+        dropbox_path = f"/{os.path.basename(file_to_transcribe)}"
+        direct_link = upload_to_dropbox(file_to_transcribe, dropbox_path)
+        
+        # Configuration transcription
+        audio = speech.RecognitionAudio(uri=direct_link)
+        config = speech.RecognitionConfig(
+            encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
+            sample_rate_hertz=16000,
+            language_code="fr-FR",
+        )
+
+        # Transcription
+        operation = client.long_running_recognize(config=config, audio=audio)
+        result = operation.result(timeout=600)
+        
+        # Nettoyage fichier audio temporaire
+        if file_to_transcribe != file_path:
+            os.remove(file_to_transcribe)
+            
+        return "\n".join([res.alternatives[0].transcript for res in result.results])
     
-    # Configuration de la transcription
-    audio = speech.RecognitionAudio(uri=direct_link)
-    config = speech.RecognitionConfig(
-        encoding=speech.RecognitionConfig.AudioEncoding.LINEAR16,
-        sample_rate_hertz=16000,
-        language_code="fr-FR",
-    )
+    except Exception as e:
+        raise RuntimeError(f"Échec de la transcription: {str(e)}")
 
-    # Lancement de la transcription
-    operation = client.long_running_recognize(config=config, audio=audio)
-    print("Début de la transcription...")
-    result = operation.result(timeout=600)
-    
-    return "\n".join([res.alternatives[0].transcript for res in result.results])
-
-# Utilisation
 if __name__ == "__main__":
-    fichier = "gs://mon-bucket-gcs-spotbulle-2050/samples_jfk.mp3"  # Peut être audio ou vidéo
+    # Exemple d'utilisation avec fichier local
+    fichier = "samples_jfk.mp3"  # Utiliser un vrai fichier local
     transcription = transcribe_media(fichier)
-    print("Résultat de la transcription :\n")
-    print(transcription)
+    print("Résultat:\n", transcription)

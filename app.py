@@ -1,7 +1,7 @@
 import os
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from models.transcriber import transcribe_video
+from models.transcriber import transcribe_video  # Assurez-vous que ce module est correctement importé
 from models.classifier import classify_pitch
 from dotenv import load_dotenv
 
@@ -28,7 +28,7 @@ def upload_video():
         return redirect(url_for("upload_video"))
 
     file = request.files["file"]
-      
+        
     if file.filename == "":
         flash("Aucun fichier sélectionné", "error")
         return redirect(url_for("upload_video"))
@@ -38,8 +38,9 @@ def upload_video():
     file.save(filepath)
 
     try:
-        text = transcribe_video(filepath)
-        category = classify_pitch(filepath)
+        # Appel à la fonction de transcription vidéo
+        text = transcribe_video(filepath, "mon-bucket-gcs-spotbulle-2050")  # Assurez-vous que le nom du bucket est correct
+        category = classify_pitch(filepath)  # Si vous avez une logique pour classifier le pitch
         return jsonify({"transcription": text, "category": category})
     except Exception as e:
         return jsonify({"error": str(e)}), 500

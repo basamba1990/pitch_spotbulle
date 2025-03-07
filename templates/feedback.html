@@ -3,20 +3,34 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Feedback</title>
+    <title>Feedback - Spot Bulle</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Donnez votre feedback</h1>
-    <form action="{{ url_for('feedback_page') }}" method="post">
-        <label for="category">Catégorie détectée :</label>
-        <input type="text" id="category" name="category" readonly value="{{ request.args.get('category', '') }}">
+    <div class="container feedback-container">
+        <h1>Résultats d'analyse</h1>
         
-        <label for="feedback">Votre avis :</label>
-        <textarea id="feedback" name="feedback" required></textarea>
-        
-        <button type="submit">Envoyer</button>
-    </form>
-    <a href="{{ url_for('index') }}">Retour à l'accueil</a>
+        <div class="results">
+            <h2>Catégorie détectée :</h2>
+            <div class="category-badge">{{ category }}</div>
+            
+            <h2>Transcription :</h2>
+            <div class="transcription-box">{{ transcription }}</div>
+        </div>
+
+        <form action="{{ url_for('handle_feedback') }}" method="POST">
+            <input type="hidden" name="category" value="{{ category }}">
+            
+            <div class="form-group">
+                <label for="feedback">Votre avis :</label>
+                <textarea id="feedback" name="feedback" required></textarea>
+            </div>
+
+            <div class="button-group">
+                <button type="submit" class="cta-button">Envoyer le feedback</button>
+                <a href="{{ url_for('index') }}" class="back-button">Retour à l'accueil</a>
+            </div>
+        </form>
+    </div>
 </body>
 </html>

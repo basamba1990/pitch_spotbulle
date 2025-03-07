@@ -7,30 +7,31 @@
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>Bienvenue sur Spot Bulle</h1>
+    <div class="container">
+        <h1>Bienvenue sur Spot Bulle</h1>
+        
+        <div class="content">
+            <p class="highlight">
+                <strong>GENUP2050</strong> transforme l'énergie des jeunes en opportunités concrètes à travers :
+            </p>
 
-    <p>
-        <strong>GENUP2050</strong> est une entreprise à impact qui détecte, connecte et accélère les talents 
-        en les intégrant aux écosystèmes économiques régionaux.
-    </p>
+            <div class="features">
+                <div class="feature-card">
+                    <h2>🎯 Spot Bulle</h2>
+                    <p>Analyse IA de pitches vidéo</p>
+                </div>
+                
+                <div class="feature-card">
+                    <h2>🚀 Vision Dôme</h2>
+                    <p>Accélérateur de projets innovants</p>
+                </div>
+            </div>
 
-    <p>
-        Grâce à <strong>Spot Bulle</strong>, un outil d'identification et de mise en relation des talents, 
-        et <strong>Vision Dôme</strong>, un accélérateur de projets, GENUP2050 transforme l'énergie des jeunes 
-        en compétences concrètes et en opportunités professionnelles.
-    </p>
-
-    <p>
-        <strong>Notre promesse :</strong> révéler le potentiel des talents et structurer des dynamiques territoriales 
-        durables, en Afrique, en Europe et au-delà.
-    </p>
-
-    <h2>📌 Uploadez votre vidéo et analysez votre pitch</h2>
-    
-    <form action="{{ url_for('upload_video') }}" method="POST" enctype="multipart/form-data">
-        <input type="file" name="file" required>
-        <button type="submit" class="btn">Uploader une vidéo</button>
-    </form>
-
+            <form action="{{ url_for('handle_upload') }}" method="POST" enctype="multipart/form-data" class="form-group">
+                <input type="file" name="file" accept="video/*" required>
+                <button type="submit" class="cta-button">Analyser une vidéo</button>
+            </form>
+        </div>
+    </div>
 </body>
 </html>

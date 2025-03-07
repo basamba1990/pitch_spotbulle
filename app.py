@@ -1,47 +1,34 @@
 import os
-import shutil
 import tempfile
 from flask import Flask, render_template, request, jsonify, redirect, url_for, flash
 from werkzeug.utils import secure_filename
-from dotenv import load_dotenv
 from models.transcriber import transcribe_video
 from models.classifier import classify_pitch
+from dotenv import load_dotenv
 
-# Chargement des variables d'environnement
 load_dotenv()
 
 app = Flask(__name__)
 app.config.update(
-    SECRET_KEY=os.getenv("SECRET_KEY"),
+    SECRET_KEY=os.getenv("SECRET_KEY", "dev-secret-key"),
     UPLOAD_FOLDER=os.getenv("UPLOAD_FOLDER", "uploads"),
     MAX_CONTENT_LENGTH=500 * 1024 * 1024,  # 500MB
-    ALLOWED_EXTENSIONS={'mp4', 'avi', 'mov', 'mp3', 'wav'}
+    ALLOWED_EXTENSIONS={'mp4', 'avi', 'mov', 'mp3', 'wav'},
+    GCS_BUCKET=os.getenv("GCS_BUCKET")
 )
 
-# Création du dossier d'upload sécurisé
 os.makedirs(app.config["UPLOAD_FOLDER"], exist_ok=True)
 
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in app.config['ALLOWED_EXTENSIONS']
 
-def cleanup_temp_files(path):
-    """Nettoie les fichiers temporaires de manière sécurisée"""
-    try:
-        if path and os.path.exists(path):
-            if os.path.isfile(path):
-                os.remove(path)
-            elif os.path.isdir(path):
-                shutil.rmtree(path)
-    except Exception as e:
-        app.logger.error(f"Error cleaning temp files: {str(e)}")
-
 @app.route("/")
 def index():
     return render_template("index.html")
 
 @app.route("/upload", methods=["POST"])
-def upload_video():
+def handle_upload():
     if 'file' not in request.files:
         return jsonify({"error": "Aucun fichier reçu"}), 400
         
@@ -50,43 +37,38 @@ def upload_video():
         return jsonify({"error": "Fichier non valide"}), 400
 
     try:
-        # Création d'un répertoire temporaire sécurisé
-        with tempfile.TemporaryDirectory() as tmp_dir:
-            filename = secure_filename(file.filename)
-            file_path = os.path.join(tmp_dir, filename)
-            file.save(file_path)
-
-            # Transcription et classification
-            transcription = transcribe_video(file_path)
-            category = classify_pitch(file_path)
+        # Sauvegarde temporaire
+        with tempfile.NamedTemporaryFile(delete=False) as tmp_file:
+            file.save(tmp_file.name)
+            
+            # Traitement
+            transcription = transcribe_video(tmp_file.name, app.config["GCS_BUCKET"])
+            category = classify_pitch(tmp_file.name)
             
             return jsonify({
                 "transcription": transcription,
                 "category": category
             })
 
-    except subprocess.CalledProcessError as e:
-        app.logger.error(f"FFmpeg error: {str(e)}")
-        return jsonify({"error": "Erreur de traitement vidéo"}), 500
-        
     except Exception as e:
-        app.logger.error(f"General error: {str(e)}")
-        return jsonify({"error": "Erreur de traitement"}), 500
+        return jsonify({"error": str(e)}), 500
+    finally:
+        if tmp_file:
+            os.remove(tmp_file.name)
 
 @app.route("/feedback", methods=["POST"])
 def handle_feedback():
     try:
-        feedback_data = request.get_json()
-        if not feedback_data or 'feedback' not in feedback_data or 'category' not in feedback_data:
+        data = request.get_json()
+        if not data or 'feedback' not in data or 'category' not in data:
             return jsonify({"error": "Données manquantes"}), 400
 
-        # Traitement du feedback
-        app.logger.info(f"Feedback reçu ({feedback_data['category']}): {feedback_data['feedback']}")
-        return jsonify({"message": "Feedback enregistré avec succès"})
+        # Logique de traitement du feedback
+        print(f"Feedback reçu ({data['category']}): {data['feedback']}")
+        return jsonify({"message": "Feedback enregistré"})
 
     except Exception as e:
-        app.logger.error(f"Feedback error: {str(e)}")
-        return jsonify({"error": "Erreur de traitement"}), 500
+        return jsonify({"error": str(e)}), 500
 
 if __name__ == "__main__":
     app.run(
